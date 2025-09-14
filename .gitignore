@@ -39,3 +39,6 @@ Thumbs.db
 
 # Results
 results/
+
+# Test files (temporary)
+test_migration.py

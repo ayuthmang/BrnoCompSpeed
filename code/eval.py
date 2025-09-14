@@ -5,7 +5,8 @@ from utils import *
 from loading import *
 
 import matplotlib
-matplotlib.rcParams['text.latex.unicode'] = True
+# text.latex.unicode was deprecated and removed in newer matplotlib versions
+# matplotlib.rcParams['text.latex.unicode'] = True  # Commented out deprecated setting
 font = {'size'   : 13}
 matplotlib.rc('font', **font)
 
@@ -55,7 +56,7 @@ def calculateSpeeds(sessionId, recordingId, data, gtData, system):
     fps = gtData["fps"]
     errors = 0
     for car in data["cars"]:
-        intersectionData = map(lambda l: getCarTimeAndSpatialIntersection(l, car["posX"], car["posY"], car["frames"]), lines)
+        intersectionData = list(map(lambda l: getCarTimeAndSpatialIntersection(l, car["posX"], car["posY"], car["frames"]), lines))
         startSpatial, startFrame, startLineSpatial = intersectionData[-1]
         endSpatial, endFrame, endLineSpatial = intersectionData[0]
 
@@ -78,12 +79,12 @@ def calculateSpeeds(sessionId, recordingId, data, gtData, system):
             car["spatialIntersectionFirst"] = startSpatial
             car["spatialIntersectionLast"] = endSpatial
 
-            points = map(lambda x,y: np.array([x,y,1]), car["posX"], car["posY"])
-            points = map(projector, points)
+            points = list(map(lambda x,y: np.array([x,y,1]), car["posX"], car["posY"]))
+            points = list(map(projector, points))
             frames = car["frames"]
             perFrameSpeeds = []
             pointsOffset = 5
-            for i in xrange(len(points)-pointsOffset):
+            for i in range(len(points)-pointsOffset):
                 passedDistance = data["camera_calibration"]["scale"]*np.linalg.norm(points[i]-points[i+pointsOffset])
                 elapsedTime = abs(frames[i]-frames[i+pointsOffset])/fps
                 perFrameSpeeds.append(passedDistance/elapsedTime * 3.6)
@@ -92,7 +93,15 @@ def calculateSpeeds(sessionId, recordingId, data, gtData, system):
         else:
             errors += 1
             if SHOW_ERRORS:
-                img = scipy.misc.imread(pTran("screen.png"))
+                # Note: scipy.misc.imread is deprecated, using imageio or PIL would be better
+                # but keeping this for now to maintain minimal changes
+                try:
+                    import scipy.misc
+                    img = scipy.misc.imread(pTran("screen.png"))
+                except AttributeError:
+                    # scipy.misc.imread was removed in scipy 1.3.0+
+                    import imageio
+                    img = imageio.imread(pTran("screen.png"))
                 scale = float(17.5)/WIDTH
                 plt.figure(figsize = (img.shape[1]*scale, img.shape[0]*scale))
                 plt.imshow(img)
@@ -115,7 +124,7 @@ finds matches between gt and observed vehicles
 def computeMatches(gtData, data, sessionId, recordingId, systemId):
     matches = []
     for gtCar in gtData["cars"]:
-        filtered = filter(lambda i: "laneIndex" in i and i["laneIndex"] in gtCar["laneIndex"], data["cars"])
+        filtered = list(filter(lambda i: "laneIndex" in i and i["laneIndex"] in gtCar["laneIndex"], data["cars"]))
         gtTimeIntersection = gtCar["intersections"][-1]["videoTime"]
         filtered.sort(key=lambda i: abs(i["timeIntersectionLast"]-gtTimeIntersection))
         if len(filtered) > 0 and abs(filtered[0]["timeIntersectionLast"]-gtTimeIntersection) < MAX_TIME_DIFF:
@@ -140,7 +149,15 @@ def computeMatches(gtData, data, sessionId, recordingId, systemId):
             if systemId in SHOW_BAD_FOR_SYSTEMS and diff > SHOW_BAD_THRESHOLD and gtCar["valid"]:
                 car = filtered[0]
                 pTran = lambda p: os.path.join(getPathForRecording(sessionId, recordingId), p)
-                img = scipy.misc.imread(pTran("screen.png"))
+                # Note: scipy.misc.imread is deprecated, using imageio or PIL would be better
+                # but keeping this for now to maintain minimal changes
+                try:
+                    import scipy.misc
+                    img = scipy.misc.imread(pTran("screen.png"))
+                except AttributeError:
+                    # scipy.misc.imread was removed in scipy 1.3.0+
+                    import imageio
+                    img = imageio.imread(pTran("screen.png"))
                 lines = gtData["measurementLines"]
                 
                 scale = float(17.5)/WIDTH
@@ -184,7 +201,7 @@ def filterPointsForCar(car):
     newXs = []
     newYs = []
     newFrames = []
-    for i in xrange(len(car["posX"])):
+    for i in range(len(car["posX"])):
         x,y,frame = car["posX"][i], car["posY"][i], car["frames"][i]
         if x > SAFE_BORDER_OFFSET and x < WIDTH-SAFE_BORDER_OFFSET\
             and y > SAFE_BORDER_OFFSET and y < HEIGHT-SAFE_BORDER_OFFSET:
@@ -199,7 +216,7 @@ def filterPointsForCar(car):
 def filterInvalidatedLanesCars(car, laneDivLines, invalidLanes):
     if len(invalidLanes) == 0:
         return True
-    for i in xrange(len(car["posX"])):
+    for i in range(len(car["posX"])):
         laneId = getLaneForPoint([car["posX"][i], car["posY"][i], 1], laneDivLines)
         if laneId in invalidLanes:
             return False
@@ -210,21 +227,21 @@ def prefilterData(data, gtData):
     fps = gtData["fps"]
     maxLineIntersection = max(map(lambda i: i["intersections"][-1]["videoTime"], gtData["cars"]))
     # remove cars which were observed after last ground truth car
-    data["cars"] = filter(lambda i: i["frames"][0]/fps < maxLineIntersection, data["cars"])
+    data["cars"] = list(filter(lambda i: i["frames"][0]/fps < maxLineIntersection, data["cars"]))
     # remove cars which have only a number as positions
-    data["cars"] = filter(lambda c: isinstance(c["posX"], list), data["cars"])
+    data["cars"] = list(filter(lambda c: isinstance(c["posX"], list), data["cars"]))
     # remove points on edges    
     for car in data["cars"]:
         filterPointsForCar(car)
     # remove cars which were observed on less then 5 frames
-    data["cars"] = filter(lambda i: len(i["frames"])>5, data["cars"])
+    data["cars"] = list(filter(lambda i: len(i["frames"])>5, data["cars"]))
     # remove cars which are outside of predefined lanes dividing lines
-    data["cars"] = filter(lambda i: map(lambda x,y:
-        getLaneForPoint(np.array([x,y,1]), gtData["laneDivLines"]), i["posX"], i["posY"]).count(None)==0, data["cars"])
+    data["cars"] = list(filter(lambda i: list(map(lambda x,y:
+        getLaneForPoint(np.array([x,y,1]), gtData["laneDivLines"]), i["posX"], i["posY"])).count(None)==0, data["cars"]))
     # remove cars which are for a moment in invalidated lanes
-    data["cars"] = filter(lambda car: filterInvalidatedLanesCars(car, gtData["laneDivLines"], gtData["invalidLanes"]), data["cars"])
+    data["cars"] = list(filter(lambda car: filterInvalidatedLanesCars(car, gtData["laneDivLines"], gtData["invalidLanes"]), data["cars"]))
     # remove cars which are not between measurement lines
-    data["cars"] = filter(lambda car: isCarBetweenLines(car, gtData["measurementLines"]), data["cars"])
+    data["cars"] = list(filter(lambda car: isCarBetweenLines(car, gtData["measurementLines"]), data["cars"]))
     # remove contours from data (if they are present)
     for car in data["cars"]:
         if "contours" in car:
@@ -234,9 +251,9 @@ def prefilterData(data, gtData):
 Computes intersection of car's track with a line in space and time
 """
 def getCarTimeAndSpatialIntersection(line, posX, posY, frames, around=6):
-    points = map(lambda x,y,f: (np.array([x,y, 1]),f), posX, posY, frames)
+    points = list(map(lambda x,y,f: (np.array([x,y, 1]),f), posX, posY, frames))
     points.sort(key=lambda i: pointToLineDistance(i[0], line))
-    getItems = lambda getter: map(getter, points[:min(around,len(points))])
+    getItems = lambda getter: list(map(getter, points[:min(around,len(points))]))
     spatialLineSlope, spatialLineIntercept = scipy.stats.linregress(getItems(lambda i: i[0][0]),
                                                                     getItems(lambda i: i[0][1]))[:2]
     spatialLine = np.array([spatialLineSlope, -1, spatialLineIntercept])
@@ -246,8 +263,8 @@ def getCarTimeAndSpatialIntersection(line, posX, posY, frames, around=6):
     frameNumbers = getItems(lambda i: i[1])
     normalizationPoint = np.cross(spatialLine, [0,1,0])
     normalizationPoint = normalizationPoint/normalizationPoint[-1]
-    pointsProjected = map(lambda p: pointToLineProjection(spatialLine, p[0]), points[:min(around,len(points))])
-    pointsDists = map(lambda p: np.linalg.norm(normalizationPoint-p), pointsProjected)
+    pointsProjected = list(map(lambda p: pointToLineProjection(spatialLine, p[0]), points[:min(around,len(points))]))
+    pointsDists = list(map(lambda p: np.linalg.norm(normalizationPoint-p), pointsProjected))
     temporalLineSlope, temporalLineIntercept = scipy.stats.linregress(pointsDists,frameNumbers)[:2]
     temporalIntersection = temporalLineSlope * np.linalg.norm(spatialIntersection-normalizationPoint) + temporalLineIntercept
 
@@ -265,27 +282,27 @@ def getCarTimeAndSpatialIntersection(line, posX, posY, frames, around=6):
 def computeFalsePositives(gtData, matches, data):
     maxLineIntersection = max(map(lambda i: i["intersections"][-1]["videoTime"], gtData["cars"]))
     minLineIntersection = min(map(lambda i: i["intersections"][-1]["videoTime"], gtData["cars"]))
-    matchedCars = set(map(lambda i: i["matchedId"], filter(lambda it: it["matched"], matches)))
-    filtered = filter(lambda i: "timeIntersectionLast" in i 
+    matchedCars = set(map(lambda i: i["matchedId"], list(filter(lambda it: it["matched"], matches))))
+    filtered = list(filter(lambda i: "timeIntersectionLast" in i 
                     and minLineIntersection <= i["timeIntersectionLast"] 
                     and i["timeIntersectionLast"] < maxLineIntersection, 
-                data["cars"])
-    return len(filter(lambda i: i["id"] not in matchedCars, filtered))
+                data["cars"]))
+    return len(list(filter(lambda i: i["id"] not in matchedCars, filtered)))
 
 
 def computeErrors(matches, errorType = "absolute"):
-    filtered = filter(lambda i: i["matched"] and i["valid"], matches)
+    filtered = list(filter(lambda i: i["matched"] and i["valid"], matches))
     errorFn = lambda gt, measured: abs(gt-measured)
     if errorType == "relative":
         errorFn = lambda gt, measured: abs(gt-measured)/gt*100
     elif errorType == "absoluteSign":
         errorFn = lambda gt, measured: measured-gt
-    return map(lambda i: errorFn(i["gtSpeed"], i["speed"]), filtered)
+    return list(map(lambda i: errorFn(i["gtSpeed"], i["speed"]), filtered))
 
 
 def computeRecall(matches):
-    valid = filter(lambda i: i["valid"], matches)
-    return len(filter(lambda i: i["matched"], valid))/len(valid)
+    valid = list(filter(lambda i: i["valid"], matches))
+    return len(list(filter(lambda i: i["matched"], valid)))/len(valid)
 
 
 #%%
@@ -295,7 +312,7 @@ def computeRecall(matches):
 ##############################################################
 """
 def showErrorStats(systemsData):
-    print "SPEED ERROR STATS"
+    print("SPEED ERROR STATS")
     outputAbs = {}
     outputRel = {}
     outputSign = {}
@@ -323,18 +340,18 @@ def showErrorStats(systemsData):
         outputRel[k] = errorsRel
         outputSign[k] = errorsSign
         tabulateData.append(("TOTAL", len(errorsAbs), np.mean(errorsAbs), np.median(errorsAbs), np.percentile(errorsAbs, USE_PERCENTIL), np.max(errorsAbs), np.mean(errorsRel), np.median(errorsRel), np.percentile(errorsRel, USE_PERCENTIL), np.max(errorsRel)))
-        print "SYSTEM: ", labelConversion(k)
-        print tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean [km/h]", "median [km/h]", "%.0f percentil [km/h]"%USE_PERCENTIL, "worst [km/h]", "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]"])
-        print
+        print("SYSTEM: ", labelConversion(k))
+        print(tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean [km/h]", "median [km/h]", "%.0f percentil [km/h]"%USE_PERCENTIL, "worst [km/h]", "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]"]))
+        print()
         results[k]["TOTAL"] = {"abs": getErrorsStats(errorsAbs), "rel": getErrorsStats(errorsRel)}
 
-    print
-    print
+    print()
+    print()
     return outputAbs, outputRel, outputSign, results
 
 
 def showDistanceMeasurementErrors(systemsData):
-    print "DISTANCE ERROR STATS (ONLY TOWARDS FIRST VP)"
+    print("DISTANCE ERROR STATS (ONLY TOWARDS FIRST VP)")
     outputSign = {}
     results = {}
     for k in RUN_FOR_SYSTEMS:
@@ -375,39 +392,39 @@ def showDistanceMeasurementErrors(systemsData):
                              np.mean(videoErrorsAbs), np.median(videoErrorsAbs), np.percentile(videoErrorsAbs, USE_PERCENTIL), np.max(videoErrorsAbs),
                              np.mean(videoErrorsRel), np.median(videoErrorsRel), np.percentile(videoErrorsRel, USE_PERCENTIL), np.max(videoErrorsRel),"%.4f, %.4f"%(np.mean(scalesStats), scale)))
         tabulateData.append(("TOTAL", len(errorsAbs), np.mean(errorsAbs), np.median(errorsAbs), np.percentile(errorsAbs, USE_PERCENTIL), np.max(errorsAbs), np.mean(errorsRel), np.median(errorsRel), np.percentile(errorsRel, USE_PERCENTIL), np.max(errorsRel), ""))
-        print "SYSTEM: ", labelConversion(k)
-        print tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean [m]", "median [m]", "%.0f percentil [m]"%USE_PERCENTIL, "worst [m]", "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]", "correctScale, usedScale"])
-        print
+        print("SYSTEM: ", labelConversion(k))
+        print(tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean [m]", "median [m]", "%.0f percentil [m]"%USE_PERCENTIL, "worst [m]", "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]", "correctScale, usedScale"]))
+        print()
         outputSign[k] = errorsSign
         results[k][("TOTAL")] = {"abs": getErrorsStats(errorsAbs), "rel": getErrorsStats(errorsRel)}
 
-    print
-    print
+    print()
+    print()
     return outputSign, results
 
 
 def showFalsePositives(systemsData):
-    print "FALSE POSITIVE STATS"
+    print("FALSE POSITIVE STATS")
     tabulateData = []
     for k in RUN_FOR_SYSTEMS:
         data = systemsData[k]
-        totalFalsePositives = sum(map(lambda i: i["falsePositives"], data.itervalues()))
+        totalFalsePositives = sum(map(lambda i: i["falsePositives"], data.values()))
         tabulateData.append((labelConversion(k), totalFalsePositives))
-    print tabulate(tabulateData, headers=("system", "false positives"))
+    print(tabulate(tabulateData, headers=("system", "false positives")))
 
 
 def showRecalls(systemsData):
-    print "RECALL STATS"
+    print("RECALL STATS")
     tabulateData = []
     for k in RUN_FOR_SYSTEMS:
         data = systemsData[k]
-        totalFalsePositives = np.mean(map(lambda i: computeRecall(i["matches"]), data.itervalues()))
+        totalFalsePositives = np.mean(list(map(lambda i: computeRecall(i["matches"]), data.values())))
         tabulateData.append((labelConversion(k), totalFalsePositives))
-    print tabulate(tabulateData, headers=("system", "mean recall"))
+    print(tabulate(tabulateData, headers=("system", "mean recall")))
 
 
 def showPureCamCalibErrors(systemsData):
-    print "CALIBRATION ERRORS (ratios diffs)"
+    print("CALIBRATION ERRORS (ratios diffs)")
     results = {}
     for k in RUN_FOR_SYSTEMS:
         results[k] = {}
@@ -415,7 +432,7 @@ def showPureCamCalibErrors(systemsData):
         tabulateData = []
         allCalibAbsErrors = []
         allCalibRelErrors = []
-        print "SYSTEM:", labelConversion(k)
+        print("SYSTEM:", labelConversion(k))
         for sessionId, recordingId in RUN_FOR_VIDEOS:
             absCalibErrors = data[(sessionId, recordingId)]["absCalibErrors"]
             relCalibErrors = data[(sessionId, recordingId)]["relCalibErrors"]
@@ -428,16 +445,16 @@ def showPureCamCalibErrors(systemsData):
             tabulateData.append(currentRow)
         tabulateData.append(["TOTAL", len(allCalibAbsErrors)] + getErrorsStats(allCalibAbsErrors) + getErrorsStats(allCalibRelErrors))
         results[k]["TOTAL"] = {"abs": getErrorsStats(allCalibAbsErrors), "rel": getErrorsStats(allCalibRelErrors)}
-        print tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean ", "median ", "%.0f percentil "%USE_PERCENTIL, "worst ", 
-        "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]"])
-        print
-    print
-    print
+        print(tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean ", "median ", "%.0f percentil "%USE_PERCENTIL, "worst ", 
+        "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]"]))
+        print()
+    print()
+    print()
     return results
 
 
 def showScaleCamCalibErrors(systemsData):
-    print "CALIBRATION ERRORS INCLUDING SCALE"
+    print("CALIBRATION ERRORS INCLUDING SCALE")
     results = {}
     for k in RUN_FOR_SYSTEMS:
         results[k] = {}
@@ -445,7 +462,7 @@ def showScaleCamCalibErrors(systemsData):
         tabulateData = []
         allScaleAbsErrors = []
         allScaleRelErrors = []
-        print "SYSTEM:", labelConversion(k)
+        print("SYSTEM:", labelConversion(k))
         for sessionId, recordingId in RUN_FOR_VIDEOS:
             absScaleErrors = data[(sessionId, recordingId)]["absScaleErrors"]
             relScaleErrors = data[(sessionId, recordingId)]["relScaleErrors"]
@@ -457,12 +474,12 @@ def showScaleCamCalibErrors(systemsData):
             tabulateData.append(currentRow)
             results[k][(sessionId, recordingId)] = {"abs": getErrorsStats(absScaleErrors), "rel": getErrorsStats(relScaleErrors)}
         tabulateData.append(["TOTAL", len(allScaleAbsErrors)] + getErrorsStats(allScaleAbsErrors) + getErrorsStats(allScaleRelErrors))
-        print tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean [m]", "median [m]", "%.0f percentil [m]"%USE_PERCENTIL, "worst [m]", 
-        "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]"])
+        print(tabulate(tabulateData, floatfmt=".2f", headers=["video", "#measurements", "mean [m]", "median [m]", "%.0f percentil [m]"%USE_PERCENTIL, "worst [m]", 
+        "mean [%]", "median [%]", "%.0f percentil [%%]"%USE_PERCENTIL, "worst [%]"]))
         results[k]["TOTAL"] = {"abs": getErrorsStats(allScaleAbsErrors), "rel": getErrorsStats(allScaleRelErrors)}
-        print
-    print
-    print
+        print()
+    print()
+    print()
     return results
 
 #%%
@@ -520,14 +537,14 @@ def initFig(figsize=(8,5)):
 def showSaveFig(filename, args):
     if args.saveFigures:
         filename = "figure_"+filename
-        print "Saving to %s"%filename
+        print("Saving to %s"%filename)
         plt.savefig(filename, bbox_inches="tight",pad_inches=0.03)
     if not args.noShow:
         plt.show()
 
 
 def showErrorCumHistogram(data, prefix, unit, xlimMax = None):
-    maxError = max(reduce(operator.add, data.itervalues()))
+    maxError = max(list(data.values())[0] if len(data) == 1 else [item for sublist in data.values() for item in sublist])
     bins = np.linspace(0, maxError+1, 1000, endpoint=True)
     for k in RUN_FOR_SYSTEMS:
         errors = data[k]
@@ -552,8 +569,9 @@ def showErrorCumHistogram(data, prefix, unit, xlimMax = None):
 
 
 def showErrorHistogram(data, prefix, unit, binStep=0.5):
-    xMax = int(round(max(reduce(operator.add, data.itervalues()))+2))
-    xMin = int(round(min(reduce(operator.add, data.itervalues()))-2))
+    all_values = [item for sublist in data.values() for item in sublist]
+    xMax = int(round(max(all_values)+2))
+    xMin = int(round(min(all_values)-2))
     xMax = max(abs(xMax), abs(xMin))
     xMin = -xMax
     bins = np.arange(xMin, xMax, step=binStep)+binStep/2
@@ -622,16 +640,18 @@ if __name__ == "__main__":
 
 
     print("Using custom config: %s"%args.config)
-    execfile(args.config)
-    print "MEASUREMENT_MODE: ", MEASUREMENT_MODE
-    print "RUN_FOR_VIDEOS: ", RUN_FOR_VIDEOS
+    # Use exec instead of execfile for Python 3 compatibility
+    with open(args.config, 'r') as f:
+        exec(f.read(), globals())
+    print("MEASUREMENT_MODE: ", MEASUREMENT_MODE)
+    print("RUN_FOR_VIDEOS: ", RUN_FOR_VIDEOS)
     RUN_FOR_SYSTEMS = list(RUN_FOR_SYSTEMS)
-    print "RUN_FOR_SYSTEMS: ", RUN_FOR_SYSTEMS
+    print("RUN_FOR_SYSTEMS: ", RUN_FOR_SYSTEMS)
 
     if not os.path.exists(RESULTS_CACHE_FILE) or args.recomputeCache:
         systemsData = {}
         for system in RUN_FOR_SYSTEMS:
-            print "Computing matches with gt for system %s"%(system)
+            print("Computing matches with gt for system %s"%(system))
             systemsData[system] = {}
             for sessionId, recordingId in RUN_FOR_VIDEOS:
                 pTran = lambda p: os.path.join(getPathForRecording(sessionId, recordingId), p)    
@@ -659,10 +679,10 @@ if __name__ == "__main__":
                                                                      "absScaleErrors": absScaleErrors,
                                                                      "relCalibErrors": relCalibErrors,
                                                                      "absCalibErrors": absCalibErrors}                    
-        print "Saving results to file %s"%RESULTS_CACHE_FILE
+        print("Saving results to file %s"%RESULTS_CACHE_FILE)
         saveCache(RESULTS_CACHE_FILE, systemsData)
     else:
-        print "Loading results from file %s"%RESULTS_CACHE_FILE
+        print("Loading results from file %s"%RESULTS_CACHE_FILE)
         systemsData = loadCache(RESULTS_CACHE_FILE)
         for system in RUN_FOR_SYSTEMS:
             if system not in systemsData:
@@ -674,7 +694,7 @@ if __name__ == "__main__":
                 print("In cache: %s"%str(set(systemsData[system].keys())))
                 print("Please regenerate the cache (-rc argument)")
                 sys.exit(1)
-    print
+    print()
 
 
     pureCalibResults = showPureCamCalibErrors(systemsData)
@@ -683,11 +703,11 @@ if __name__ == "__main__":
     
     absErrors, relErrors, signErrors, speedResults = showErrorStats(systemsData)
     showFalsePositives(systemsData)
-    print 
-    print
+    print() 
+    print()
     showRecalls(systemsData)
 
-    print
+    print()
 
     fig = initFig()
     absMaxError = showErrorCumHistogram(absErrors, "absolute", "km/h")

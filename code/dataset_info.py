@@ -86,10 +86,10 @@ SPLIT_TRAIN_SESSIONS["A"] = {"session0"}
 SPLIT_TRAIN_SESSIONS["B"] = SPLIT_TRAIN_SESSIONS["A"] | {"session1", "session2"}
 SPLIT_TRAIN_SESSIONS["C"] = SPLIT_TRAIN_SESSIONS["B"] | {"session3"}
 
-SPLIT_TEST_SESSIONS = dict(map(lambda i: (i[0], ALL_SESSIONS-i[1]), SPLIT_TRAIN_SESSIONS.iteritems()))
+SPLIT_TEST_SESSIONS = dict(map(lambda i: (i[0], ALL_SESSIONS-i[1]), SPLIT_TRAIN_SESSIONS.items()))
 
-SPLIT_TRAIN_VIDEOS = dict(map(lambda i: (i[0], filter(lambda j: j[0] in i[1], ALL_VIDEOS)), SPLIT_TRAIN_SESSIONS.iteritems()))
-SPLIT_TEST_VIDEOS = dict(map(lambda i: (i[0], filter(lambda j: j[0] in i[1], ALL_VIDEOS)), SPLIT_TEST_SESSIONS.iteritems()))
+SPLIT_TRAIN_VIDEOS = dict(map(lambda i: (i[0], list(filter(lambda j: j[0] in i[1], ALL_VIDEOS))), SPLIT_TRAIN_SESSIONS.items()))
+SPLIT_TEST_VIDEOS = dict(map(lambda i: (i[0], list(filter(lambda j: j[0] in i[1], ALL_VIDEOS))), SPLIT_TEST_SESSIONS.items()))
 
 def getPathForRecording(session, recording):
     return os.path.join(DATASET_BASE_PATH, "%s_%s"%(session, recording))

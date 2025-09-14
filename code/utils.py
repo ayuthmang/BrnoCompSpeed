@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-import cPickle
+import pickle
 
 
 def ensureDir(d):
@@ -17,12 +17,12 @@ def ensureDir(d):
                 
 def loadCache(cacheFile):
     with open(cacheFile, 'rb') as fid:
-        return cPickle.load(fid)
+        return pickle.load(fid)
 
 def saveCache(cacheFile, data):
     ensureDir(os.path.dirname(cacheFile))
     with open(cacheFile, 'wb') as fid:
-        cPickle.dump(data, fid, cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(data, fid, pickle.HIGHEST_PROTOCOL)
         
 def pointToLineDistance(p, l):
     return abs(np.dot(l,p/p[2]))/np.linalg.norm(l[0:2])

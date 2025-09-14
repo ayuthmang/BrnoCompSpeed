@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from dataset_info import SPLIT_TEST_VIDEOS
 
 """
 For which systems the evaluation should be done.

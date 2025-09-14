@@ -2,19 +2,32 @@
 
 Dataset published with paper **SOCHOR Jakub et al. Comprehensive Data Set for Automatic Single Camera Visual Speed Measurement, IEEE T-ITS**
 
+## Requirements
+
+- Python 3.8+ (recommended: Python 3.10+)
+- Required packages: `numpy, scipy, matplotlib, tabulate, imageio`
+
 ## Download
 To download the dataset, reach out to Jakub Špaňhel - ispanhel@fit.vutbr.cz. 
 
 
 ## How to use the code
 
-1. Install **PYTHON2**, packages you might NOT have: `numpy, scipy, matplotlib, tabulate`
-1. Download the [dataset](https://medusa.fit.vutbr.cz/traffic/research-topics/traffic-camera-calibration/brnocompspeed/) and place the results and dataset folders from the downloaded archive on the same level as the code folder (root of the repository).
-  * TIP: to save disk space use following command to get and unpack the dataset (WARNING: it has ~200GB)
-  * `curl https://medusa.fit.vutbr.cz/traffic/data/2016-ITS-BrnoCompSpeed-full.tar | tar xv`
-2. (Optional) Modify paths in file code/dataset_info.py
-3. Check file code/config.py. The most important variables are `RUN_FOR_SYSTEMS` and `RUN_FOR_VIDEOS`.
-4. Run in code direcotory: `python eval.py` and wait. The results will be computed, shown and cached in results directory. The script `eval.py` has several arguments, so you can use `--help` for explanation of the arguments. I STRONGLY recommend to use ipython, spyder or similar terminals. 
+1. Install **Python 3.8+** and the required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   Alternatively, install packages manually: `pip install numpy scipy matplotlib tabulate imageio`
+
+2. Download the [dataset](https://medusa.fit.vutbr.cz/traffic/research-topics/traffic-camera-calibration/brnocompspeed/) and place the results and dataset folders from the downloaded archive on the same level as the code folder (root of the repository).
+   * TIP: to save disk space use following command to get and unpack the dataset (WARNING: it has ~200GB)
+   * `curl https://medusa.fit.vutbr.cz/traffic/data/2016-ITS-BrnoCompSpeed-full.tar | tar xv`
+
+3. (Optional) Modify paths in file code/dataset_info.py
+
+4. Check file code/config.py. The most important variables are `RUN_FOR_SYSTEMS` and `RUN_FOR_VIDEOS`.
+
+5. Run in code directory: `python eval.py` and wait. The results will be computed, shown and cached in results directory. The script `eval.py` has several arguments, so you can use `--help` for explanation of the arguments. I STRONGLY recommend to use ipython, spyder or similar terminals. 
 
 
 ## Additional information

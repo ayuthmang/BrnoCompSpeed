@@ -17,7 +17,13 @@ def ensureDir(d):
                 
 def loadCache(cacheFile):
     with open(cacheFile, 'rb') as fid:
-        return pickle.load(fid)
+        try:
+            return pickle.load(fid)
+        except (UnicodeDecodeError, ValueError, TypeError):
+            # Fallback for pickles created with Python 2 (or different encodings).
+            # Try loading using latin1 encoding which preserves byte strings.
+            fid.seek(0)
+            return pickle.load(fid, encoding='latin1')
 
 def saveCache(cacheFile, data):
     ensureDir(os.path.dirname(cacheFile))

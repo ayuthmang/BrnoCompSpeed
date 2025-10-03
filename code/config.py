@@ -12,9 +12,9 @@ RUN_FOR_SYSTEMS = ( "dubska_bmvc14",
                     "dubska_optimal_calib_vp2")
                     
 """
-For which video the evaluation should be done. 
+For which video the evaluation should be done.
 You can use keys A,B or C.
-See dataset_info.py for more information and 
+See dataset_info.py for more information and
 training videos for each splitting
 """
 RUN_FOR_VIDEOS = SPLIT_TEST_VIDEOS["A"]
@@ -88,7 +88,7 @@ def plotStyleCumulativeHist(systemId):
 
 
 
-    
+
     return styleDict
 
 
@@ -97,7 +97,7 @@ Styles for error histograms
 """
 def plotStyleErrorHist(systemId):
     styleDict = {"linewidth":2}
-        
+
     if systemId == "dubska_bmvc14":
         styleDict["color"] = "black"
     elif systemId == "dubska_optimal_scale":
@@ -108,6 +108,5 @@ def plotStyleErrorHist(systemId):
         styleDict["color"] = "#A40000"
     elif systemId == "dubska_optimal_calib_vp2":
         styleDict["color"] = "#FF9900"
-    
+
     return styleDict
-    

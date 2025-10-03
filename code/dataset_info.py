@@ -21,53 +21,52 @@ DATASET_SESSIONS = {
             "center": {"fps": 25.0},
             "right": {"fps": 50.0}
         }
-        
+
     },
     "session1": {
-        "recordings": {        
+        "recordings": {
             "left": {"fps": 50.0},
             "center": {"fps": 50.0},
             "right": {"fps": 50.0}
         }
     },
     "session2": {
-        "recordings": {        
+        "recordings": {
             "left": {"fps": 50.0},
             "center": {"fps": 50.0},
             "right": {"fps": 50.0}
         }
     },
     "session3": {
-        "recordings": {        
+        "recordings": {
             "left": {"fps": 50.0},
             "center": {"fps": 50.0},
             "right": {"fps": 50.0}
         }
     },
     "session4": {
-        "recordings": {        
+        "recordings": {
             "left": {"fps": 50.0},
             "center": {"fps": 50.0},
             "right": {"fps": 50.0}
         }
     },
     "session5": {
-        "recordings": {        
+        "recordings": {
             "left": {"fps": 50.0},
             "center": {"fps": 50.0},
             "right": {"fps": 50.0}
         }
     },
     "session6": {
-        "recordings": {        
+        "recordings": {
             "left": {"fps": 50.0},
             "center": {"fps": 50.0},
             "right": {"fps": 50.0}
         },
         "invalidLanes": set([2])
-        
     }
-    
+
 }
 
 
